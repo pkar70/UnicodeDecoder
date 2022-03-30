@@ -1,7 +1,4 @@
-﻿''' <summary>
-''' Provides application-specific behavior to supplement the default Application class.
-''' </summary>
-NotInheritable Class App
+﻿NotInheritable Class App
     Inherits Application
 
     ''' <summary>
@@ -63,5 +60,9 @@ NotInheritable Class App
         ' TODO: Save application state and stop any background activity
         deferral.Complete()
     End Sub
+
+    Private Async Function AppServiceLocalCommand(sCommand As String) As Task(Of String)
+        Return ""
+    End Function
 
 End Class

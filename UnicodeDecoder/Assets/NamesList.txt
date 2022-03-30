@@ -24,7 +24,7 @@
 	= END OF TEXT
 0004	<control>
 	= END OF TRANSMISSION
-0005	<control>
+0005	<control>		
 	= ENQUIRY
 0006	<control>
 	= ACKNOWLEDGE
