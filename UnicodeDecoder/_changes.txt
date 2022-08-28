@@ -1,0 +1,11 @@
+
+2022.04.27
+ * WinUI 2.7 - bo testowa³em Expander, ale za du¿o miejsca siê traci na to
+ * wyszukiwanie symboli
+ * po wczytaniu nowej wersji od razu jest ona dostêpna (a nie tylko po restart app)
+
+' pocz¹tek: 2020.01
+' ale jako app, wraz ze Store i aktualizacj¹ pliku names, 2022.03
+' STORE: 2022.03
+
+' 2022.03.29: gdy na appStart jest w Clipboard krotki tekst (<10 chars), to robi jego decode od razu

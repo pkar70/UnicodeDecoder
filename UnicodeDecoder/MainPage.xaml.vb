@@ -1,9 +1,4 @@
 ﻿
-' początek: 2020.01
-' ale jako app, wraz ze Store i aktualizacją pliku names, 2022.03
-' STORE: 2022.03
-
-' 2022.03.29: gdy na appStart jest w Clipboard krotki tekst (<10 chars), to robi jego decode od razu
 
 
 
@@ -15,7 +10,15 @@ Public NotInheritable Class MainPage
     Dim bInitDone As Boolean = False
 
     Private Sub uiUnicode_TextChanged(sender As Object, e As TextChangedEventArgs)
-        If bInitDone Then DecodeUnicode()
+        If Not bInitDone Then Return
+
+        Dim sUni As String = uiUnicode.Text
+
+        If uiSwitchEncode.IsChecked Then
+            If sUni.Length > 3 Then uiDecoded.Text = EncodeUnicode(sUni, uiFullInfo.IsChecked)
+        Else
+            uiDecoded.Text = DecodeUnicode(sUni, uiIgnoreASCII.IsChecked, uiFullInfo.IsChecked)
+        End If
     End Sub
 
     Private Async Sub Page_Loaded(sender As Object, e As RoutedEventArgs)
@@ -41,11 +44,43 @@ Public NotInheritable Class MainPage
     End Sub
 
     Private Sub uiGetList_Click(sender As Object, e As RoutedEventArgs)
+#Disable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
         NamesListDownload()
+#Enable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
     End Sub
 
     Private Sub uiReDecode_Checked(sender As Object, e As RoutedEventArgs)
-        If bInitDone Then DecodeUnicode()
+        uiUnicode_TextChanged(Nothing, Nothing)
+    End Sub
+
+    Private Sub uiSwitchRole_Click(sender As Object, e As RoutedEventArgs)
+
+        ' interesuje nas tylko włączenie, wyłączenie nie działa
+        Dim oTB As ToggleButton = TryCast(sender, ToggleButton)
+        If oTB Is Nothing Then Return
+        If Not oTB.IsChecked Then
+            oTB.IsChecked = True
+            Return
+        End If
+
+        ' włączenie jednego to wyłączenie drugiego
+        If oTB.Name = "uiSwitchDecode" Then
+            uiSwitchEncode.IsChecked = False
+        Else
+            uiSwitchDecode.IsChecked = False
+        End If
+
+        ' ustalenie pozostałych parametrów
+        If oTB.Name = "uiSwitchDecode" Then
+            uiUnicode.Header = "Unicode text:"
+            uiUnicode.PlaceholderText = "(enter/paste unicode text)"
+            uiIgnoreASCII.Visibility = Visibility.Visible
+        Else
+            uiUnicode.Header = "Search symbols for:"
+            uiUnicode.PlaceholderText = "(enter what I should search for (min. 4 letters)"
+            uiIgnoreASCII.Visibility = Visibility.Collapsed
+        End If
+
     End Sub
 #End Region
 
@@ -118,6 +153,8 @@ Public NotInheritable Class MainPage
 
             Await DialogBoxAsync("Got newer version " & sNewVers & " (previous: " & sOldVers & ")")
 
+            maLines = aPage
+
         End If
 
         ' gdy wiemy że nowsza wersja, albo gdy nie było poprzedniej wersji
@@ -128,8 +165,8 @@ Public NotInheritable Class MainPage
     Private Async Function GetHtmlPage(ByVal sUrl As String) As Task(Of String)
         DumpCurrMethod(sUrl)
 
-        Using oHttp As Net.Http.HttpClient = New Net.Http.HttpClient()
-            Dim oUri As Uri = New Uri(sUrl)
+        Using oHttp As New Net.Http.HttpClient()
+            Dim oUri As New Uri(sUrl)
 
             Using oResp = Await oHttp.GetAsync(oUri)
 
@@ -144,19 +181,15 @@ Public NotInheritable Class MainPage
 
 #Region "dekodowanie"
 
-    Private Sub DecodeUnicode()
-        Dim sUni As String = uiUnicode.Text
-        uiDecoded.Text = DecodeUnicode(sUni, uiIgnoreASCII.IsChecked, uiFullInfo.IsChecked)
-    End Sub
 
     Private Function DecodeUnicode(sUnicode As String, bIgnoreASCII As Boolean, bFullInfo As Boolean) As String
         Dim iLoop As Integer
         Dim sDecod As String = ""
 
 
-        Dim sMalpa1 As String = ""  ' na pozniej - bo to jednak niezbyt poprawne jest?
-        Dim sMalpa2 As String = ""
-        Dim sMalpa3 As String = ""
+        'Dim sMalpa1 As String = ""  ' na pozniej - bo to jednak niezbyt poprawne jest?
+        'Dim sMalpa2 As String = ""
+        'Dim sMalpa3 As String = ""
 
         For iLoop = 0 To sUnicode.Length - 1
             Dim oChar As System.Char = sUnicode.ElementAt(iLoop)
@@ -181,7 +214,7 @@ Public NotInheritable Class MainPage
                 iX = (iChar And &H3F) << 10
 
                 sDecod = sDecod & sChar & "high-surrogate code point:" & vbCrLf
-                iLoop = iLoop + 1
+                iLoop += 1
                 oChar = sUnicode.ElementAt(iLoop)
                 iChar = Convert.ToInt32(oChar)
                 sDecod = sDecod & "  next: " & iChar.ToString("X4") & vbTab & " = "
@@ -194,7 +227,7 @@ Public NotInheritable Class MainPage
             End If
 
 
-            sDecod = sDecod & "U+"
+            sDecod &= "U+"
 
             For iLinia = 0 To maLines.GetUpperBound(0)
                 If maLines(iLinia).StartsWith(sChar) Then
@@ -218,6 +251,82 @@ Public NotInheritable Class MainPage
 
         Return sDecod
 
+    End Function
+
+    Private Function EncodeUnicode(sSearch As String, bFullInfo As Boolean) As String
+
+        Dim sRetVal As String = ""
+        Dim sCurrSection As String = ""
+        Dim bFound As Boolean = False
+        Dim sUnicodes As String = ""
+
+        Dim oEncoder = (New System.Text.UTF32Encoding(Not BitConverter.IsLittleEndian, False, False)).GetDecoder
+
+        sSearch = sSearch.ToLowerInvariant
+
+        For iLinia = 0 To maLines.GetUpperBound(0)
+
+            Dim sLinia As String = maLines(iLinia)
+
+            If sLinia.StartsWith("@") Then Continue For
+            If sLinia.StartsWith(";") Then Continue For
+
+            'czy to jest sekcja nowa?
+            If "01234567890ABCDEF".Contains(sLinia.Substring(0, 1)) Then
+
+                ' obsługa starej sekcji
+                If bFound Then
+                    sRetVal = sRetVal & vbCrLf & sCurrSection
+
+                    Dim iInd As Integer = sCurrSection.IndexOf(vbTab)
+                    If iInd > 0 And iInd < 7 Then
+                        Dim iHexVal As Long
+                        If Long.TryParse(sCurrSection.Substring(0, iInd),
+                                         Globalization.NumberStyles.HexNumber,
+                                         Globalization.CultureInfo.InvariantCulture,
+                            iHexVal) Then
+
+                            If iHexVal > 32 Then
+                                ' *TODO* dodaj do sUnicodes mordkę
+                                Try
+                                    Dim aChars(5) As Char
+                                    Dim iChars As Integer = oEncoder.GetChars(BitConverter.GetBytes(iHexVal), 0, 4, aChars, 0)
+                                    For i = 0 To iChars - 1
+                                        sUnicodes &= aChars(i)
+                                    Next
+                                    sUnicodes &= " "
+                                Catch ex As Exception
+                                    ' jeśliby nie było
+                                    sUnicodes = sUnicodes & "X "
+                                End Try
+                            End If
+
+                        End If
+                    End If
+
+                        bFound = False
+                End If
+
+                sCurrSection = sLinia
+                    If sLinia.ToLowerInvariant.Contains(sSearch) Then bFound = True
+                Else
+
+                ' zwykła linia
+                If bFullInfo Then sCurrSection = sCurrSection & vbCrLf & sLinia
+
+                ' a może to jakiś alias?
+                If sLinia.StartsWith(vbTab & "=") Then
+                    If sLinia.ToLowerInvariant.Contains(sSearch) Then
+                        ' gdy nie kopiujemy całości, to przynajmniej tą linię "trafioną" musimy skopiować
+                        If Not bFullInfo Then sCurrSection = sCurrSection & vbCrLf & sLinia
+                        bFound = True
+                    End If
+                End If
+
+            End If
+        Next
+
+        Return sUnicodes & vbCrLf & sRetVal
     End Function
 
 #End Region

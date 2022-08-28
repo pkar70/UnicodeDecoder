@@ -61,8 +61,10 @@
         deferral.Complete()
     End Sub
 
+#Disable Warning BC42356 ' This async method lacks 'Await' operators and so will run synchronously
     Private Async Function AppServiceLocalCommand(sCommand As String) As Task(Of String)
         Return ""
     End Function
+#Enable Warning BC42356 ' This async method lacks 'Await' operators and so will run synchronously
 
 End Class

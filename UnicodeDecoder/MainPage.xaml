@@ -5,6 +5,7 @@
     xmlns:local="using:UnicodeDecoder"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Loaded="Page_Loaded">
 
@@ -13,15 +14,17 @@
             <RowDefinition  Height="Auto" />
             <RowDefinition  Height="Auto" />
             <RowDefinition  Height="Auto" />
+            <RowDefinition  Height="Auto" />
             <RowDefinition  />
         </Grid.RowDefinitions>
         <TextBlock Text="Unicode decoder" HorizontalAlignment="Center" FontSize="18" />
-        <TextBox Grid.Row="1" Name="uiUnicode" Header="Unicode text:" PlaceholderText="(enter/paste unicode text)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicode_TextChanged" AcceptsReturn="True" />
+        <ToggleButton Grid.Row="1" Name="uiSwitchDecode" HorizontalAlignment="Left" Content="decode" IsChecked="True" Click="uiSwitchRole_Click"/>
+        <ToggleButton Grid.Row="1" Name="uiSwitchEncode" HorizontalAlignment="Right" Content="encode" Click="uiSwitchRole_Click"/>
+        <TextBox Grid.Row="2" Name="uiUnicode" Header="Unicode text:" PlaceholderText="(enter/paste unicode text)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicode_TextChanged" AcceptsReturn="True" />
+        <CheckBox Grid.Row="3" HorizontalAlignment="Left" Name="uiIgnoreASCII" Content="Ignore ASCII" IsChecked="True" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked"/>
+        <CheckBox Grid.Row="3" HorizontalAlignment="Right" Name="uiFullInfo" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
 
-        <CheckBox Grid.Row="2" HorizontalAlignment="Left" Name="uiIgnoreASCII" Content="Ignore ASCII" IsChecked="True" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked"/>
-        <CheckBox Grid.Row="2" HorizontalAlignment="Right" Name="uiFullInfo" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
-
-        <TextBox Grid.Row="3" Name="uiDecoded" Header="Decoded as:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+        <TextBox Grid.Row="4" Name="uiDecoded" Header="Decoded as:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
     </Grid>
     <Page.BottomAppBar>
         <CommandBar ClosedDisplayMode="Minimal" >
