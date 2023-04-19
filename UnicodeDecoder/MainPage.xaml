@@ -12,19 +12,64 @@
     <Grid Margin="5,5,5,5">
         <Grid.RowDefinitions>
             <RowDefinition  Height="Auto" />
-            <RowDefinition  Height="Auto" />
-            <RowDefinition  Height="Auto" />
-            <RowDefinition  Height="Auto" />
             <RowDefinition  />
         </Grid.RowDefinitions>
-        <TextBlock Text="Unicode decoder" HorizontalAlignment="Center" FontSize="18" />
-        <ToggleButton Grid.Row="1" Name="uiSwitchDecode" HorizontalAlignment="Left" Content="decode" IsChecked="True" Click="uiSwitchRole_Click"/>
-        <ToggleButton Grid.Row="1" Name="uiSwitchEncode" HorizontalAlignment="Right" Content="encode" Click="uiSwitchRole_Click"/>
-        <TextBox Grid.Row="2" Name="uiUnicode" Header="Unicode text:" PlaceholderText="(enter/paste unicode text)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicode_TextChanged" AcceptsReturn="True" />
-        <CheckBox Grid.Row="3" HorizontalAlignment="Left" Name="uiIgnoreASCII" Content="Ignore ASCII" IsChecked="True" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked"/>
-        <CheckBox Grid.Row="3" HorizontalAlignment="Right" Name="uiFullInfo" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
+        <TextBlock Text="Unicode tool" HorizontalAlignment="Center" FontSize="18" />
 
-        <TextBox Grid.Row="4" Name="uiDecoded" Header="Decoded as:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+        <muxc:TabView Grid.Row="1" VerticalAlignment="Stretch" IsAddTabButtonVisible="False"  >
+
+            <muxc:TabViewItem Header="Decode" VerticalAlignment="Stretch" IsClosable="False">
+                <Grid Margin="5,5,5,5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  />
+                    </Grid.RowDefinitions>
+
+                    <TextBox Grid.Row="0" Header="Unicode text:" Name="uiUnicode" PlaceholderText="(enter/paste unicode text)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicode_TextChanged" AcceptsReturn="True" />
+                    <CheckBox Grid.Row="1" HorizontalAlignment="Left" Name="uiIgnoreASCII" Content="Ignore ASCII" IsChecked="True" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked"/>
+                    <CheckBox Grid.Row="1" HorizontalAlignment="Right" Name="uiFullInfo" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
+
+                    <TextBox Grid.Row="2" Name="uiDecoded" Header="Decoded as:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+
+                </Grid>
+            </muxc:TabViewItem>
+
+            <muxc:TabViewItem Header="Find" IsClosable="False" >
+                <Grid Margin="5,5,5,5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  />
+                    </Grid.RowDefinitions>
+
+                    <TextBox Grid.Row="0" Header="Search Unicode for:" Name="uiUnicodeFind" PlaceholderText="(enter what I should search for (min. 4 letters)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicodeFind_TextChanged" AcceptsReturn="True" />
+                    <CheckBox Grid.Row="1" HorizontalAlignment="Right" Name="uiFullInfoFind" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
+
+                    <TextBox Grid.Row="2" Name="uiUnicodeFindResult" Header="Found:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+
+                </Grid>
+            </muxc:TabViewItem>
+
+            <muxc:TabViewItem Header="Numbers" IsClosable="False">
+                <Grid Margin="5,5,5,5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  />
+                    </Grid.RowDefinitions>
+
+                    <TextBox Grid.Row="0" Name="uiUnicodeNumber" Header="Enter number:" PlaceholderText="(enter number that should be encoded" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicodeNumber_TextChanged" AcceptsReturn="True" />
+
+                    <TextBox Grid.Row="2" Name="uiUnicodeNumberResult" Header="Same number in different scripts" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+
+                </Grid>
+
+            </muxc:TabViewItem>
+
+
+        </muxc:TabView>
+
     </Grid>
     <Page.BottomAppBar>
         <CommandBar ClosedDisplayMode="Minimal" >

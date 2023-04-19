@@ -1,9 +1,4 @@
 ﻿
-
-
-
-Imports claslibtest14
-
 Public NotInheritable Class MainPage
     Inherits Page
 
@@ -11,27 +6,10 @@ Public NotInheritable Class MainPage
 
     Dim bInitDone As Boolean = False
 
-    Private Sub uiUnicode_TextChanged(sender As Object, e As TextChangedEventArgs)
-        If Not bInitDone Then Return
-
-        Dim sUni As String = uiUnicode.Text
-
-        If uiSwitchEncode.IsChecked Then
-            If sUni.Length > 3 Then uiDecoded.Text = EncodeUnicode(sUni, uiFullInfo.IsChecked)
-        Else
-            uiDecoded.Text = DecodeUnicode(sUni, uiIgnoreASCII.IsChecked, uiFullInfo.IsChecked)
-        End If
-    End Sub
-
     Private Async Sub Page_Loaded(sender As Object, e As RoutedEventArgs)
         ProgRingInit(True, False)
         Await NamesListInit()
         bInitDone = True
-
-        Class1.getenvvartest()
-        Module1.cosik1()
-        Dim sCOs = Environment.GetEnvironmentVariables '(EnvironmentVariableTarget.User)
-        'Dim scosss = Environment.GetCommandLineArgs
 
         ' 2022.03.29
         Await Task.Delay(1000)  ' bo AccessDenied gdy idzie bez zwłoki, na DataTransfer.Clipboard.GetContent
@@ -44,11 +22,46 @@ Public NotInheritable Class MainPage
 
         If Not String.IsNullOrEmpty(sClip) Then
             If sClip.Length < 10 Then
+                ' uiUnicode.PasteFromClipboard() ' teoretycznie można byłoby i tak
                 uiUnicode.Text = sClip
             End If
         End If
 
     End Sub
+
+
+
+#Region "decode tab"
+    Private Sub uiUnicode_TextChanged(sender As Object, e As TextChangedEventArgs)
+        If Not bInitDone Then Return
+
+        Dim sUni As String = uiUnicode.Text
+
+        uiDecoded.Text = DecodeUnicode(sUni, uiIgnoreASCII.IsChecked, uiFullInfo.IsChecked)
+    End Sub
+
+#End Region
+
+#Region "find (encode) tab"
+    Private Sub uiUnicodeFind_TextChanged(sender As Object, e As TextChangedEventArgs)
+        If Not bInitDone Then Return
+
+        Dim sUni As String = uiUnicodeFind.Text
+
+        If sUni.Length > 3 Then uiUnicodeFindResult.Text = EncodeUnicode(sUni, uiFullInfoFind.IsChecked)
+    End Sub
+
+#End Region
+
+#Region "numbers"
+    Private Sub uiUnicodeNumber_TextChanged(sender As Object, e As TextChangedEventArgs)
+        If Not bInitDone Then Return
+        Dim sUni As String = uiUnicodeNumber.Text
+        uiUnicodeNumberResult.Text = EncodeNumber(sUni)
+
+    End Sub
+
+#End Region
 
     Private Sub uiGetList_Click(sender As Object, e As RoutedEventArgs)
 #Disable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
@@ -58,37 +71,9 @@ Public NotInheritable Class MainPage
 
     Private Sub uiReDecode_Checked(sender As Object, e As RoutedEventArgs)
         uiUnicode_TextChanged(Nothing, Nothing)
+        uiUnicodeFind_TextChanged(Nothing, Nothing)
     End Sub
 
-    Private Sub uiSwitchRole_Click(sender As Object, e As RoutedEventArgs)
-
-        ' interesuje nas tylko włączenie, wyłączenie nie działa
-        Dim oTB As ToggleButton = TryCast(sender, ToggleButton)
-        If oTB Is Nothing Then Return
-        If Not oTB.IsChecked Then
-            oTB.IsChecked = True
-            Return
-        End If
-
-        ' włączenie jednego to wyłączenie drugiego
-        If oTB.Name = "uiSwitchDecode" Then
-            uiSwitchEncode.IsChecked = False
-        Else
-            uiSwitchDecode.IsChecked = False
-        End If
-
-        ' ustalenie pozostałych parametrów
-        If oTB.Name = "uiSwitchDecode" Then
-            uiUnicode.Header = "Unicode text:"
-            uiUnicode.PlaceholderText = "(enter/paste unicode text)"
-            uiIgnoreASCII.Visibility = Visibility.Visible
-        Else
-            uiUnicode.Header = "Search symbols for:"
-            uiUnicode.PlaceholderText = "(enter what I should search for (min. 4 letters)"
-            uiIgnoreASCII.Visibility = Visibility.Collapsed
-        End If
-
-    End Sub
 #End Region
 
 #Region "plik z nazwami"
@@ -186,7 +171,7 @@ Public NotInheritable Class MainPage
 
 #End Region
 
-#Region "dekodowanie"
+#Region "operacje zamiany TextBox query na TextBox result"
 
 
     Private Function DecodeUnicode(sUnicode As String, bIgnoreASCII As Boolean, bFullInfo As Boolean) As String
@@ -267,8 +252,6 @@ Public NotInheritable Class MainPage
         Dim bFound As Boolean = False
         Dim sUnicodes As String = ""
 
-        Dim oEncoder = (New System.Text.UTF32Encoding(Not BitConverter.IsLittleEndian, False, False)).GetDecoder
-
         sSearch = sSearch.ToLowerInvariant
 
         For iLinia = 0 To maLines.GetUpperBound(0)
@@ -285,31 +268,7 @@ Public NotInheritable Class MainPage
                 If bFound Then
                     sRetVal = sRetVal & vbCrLf & sCurrSection
 
-                    Dim iInd As Integer = sCurrSection.IndexOf(vbTab)
-                    If iInd > 0 And iInd < 7 Then
-                        Dim iHexVal As Long
-                        If Long.TryParse(sCurrSection.Substring(0, iInd),
-                                         Globalization.NumberStyles.HexNumber,
-                                         Globalization.CultureInfo.InvariantCulture,
-                            iHexVal) Then
-
-                            If iHexVal > 32 Then
-                                ' *TODO* dodaj do sUnicodes mordkę
-                                Try
-                                    Dim aChars(5) As Char
-                                    Dim iChars As Integer = oEncoder.GetChars(BitConverter.GetBytes(iHexVal), 0, 4, aChars, 0)
-                                    For i = 0 To iChars - 1
-                                        sUnicodes &= aChars(i)
-                                    Next
-                                    sUnicodes &= " "
-                                Catch ex As Exception
-                                    ' jeśliby nie było
-                                    sUnicodes = sUnicodes & "X "
-                                End Try
-                            End If
-
-                        End If
-                    End If
+                    sUnicodes &= GetUnicodeChar(sCurrSection)
 
                     bFound = False
                 End If
@@ -335,6 +294,188 @@ Public NotInheritable Class MainPage
 
         Return sUnicodes & vbCrLf & sRetVal
     End Function
+
+    Private Shared _Encoder = (New System.Text.UTF32Encoding(Not BitConverter.IsLittleEndian, False, False)).GetDecoder
+
+    Private Shared Function GetUnicodeChar(sCurrSection As String) As String
+
+        Dim sUnicodes As String = ""
+        Dim iInd As Integer = sCurrSection.IndexOf(vbTab)
+        If iInd < 1 OrElse iInd > 6 Then Return ""
+
+        Dim iHexVal As Long
+        If Not Long.TryParse(sCurrSection.Substring(0, iInd),
+                             Globalization.NumberStyles.HexNumber,
+                             Globalization.CultureInfo.InvariantCulture,
+                iHexVal) Then Return ""
+
+        If iHexVal < 33 Then Return ""
+
+        ' *TODO* dodaj do sUnicodes mordkę
+        Try
+            Dim aChars(5) As Char
+            Dim iChars As Integer = _Encoder.GetChars(BitConverter.GetBytes(iHexVal), 0, 4, aChars, 0)
+            For i = 0 To iChars - 1
+                sUnicodes &= aChars(i)
+            Next
+            sUnicodes &= " "
+        Catch ex As Exception
+            ' jeśliby nie było
+            sUnicodes = sUnicodes & "X "
+        End Try
+
+        Return sUnicodes
+    End Function
+
+
+
+#Region "number coding"
+
+    Dim _DigitSystems As List(Of String)
+
+    Private Function EncodeNumber(sUni As String) As String
+
+        ' *TODO* może być potem jako ogólniej, tzn. że każda cyfra z innego zestawu :)
+        Dim sNumSystem As String = RecognizeNumberSystem(sUni)
+        If sNumSystem = "" Then Return "(unrecognized numbering system)"
+
+        Dim iNumber As Integer = NumberFromText(sUni)
+
+        Dim sRet As String = $"Recognized as {iNumber} in {sNumSystem}" & vbCrLf & vbCrLf
+
+        sRet = sRet & "Roman (archaic, ASCII): " & iNumber.ToRomanNumber(useSubtractive:=False) & vbCrLf
+        sRet = sRet & "Roman (modified, ASCII): " & iNumber.ToRomanNumber & vbCrLf
+        sRet = sRet & "Roman (apostrophus, ASCII): " & iNumber.ToRomanNumber(numSystem:=RomanBigNumberSystem.Apostrophus) & vbCrLf
+        sRet = sRet & "Roman (archaic): " & iNumber.ToRomanNumber(True, useSubtractive:=False) & vbCrLf
+        sRet = sRet & "Roman (modified): " & iNumber.ToRomanNumber(True) & vbCrLf
+        sRet = sRet & "Roman (apostrophus): " & iNumber.ToRomanNumber(True, RomanBigNumberSystem.Apostrophus) & vbCrLf & vbCrLf
+
+        ' *TODO* greek, hebrew
+
+        If _DigitSystems Is Nothing Then _DigitSystems = RetrieveDigitSystems()
+
+        For Each digitSystem As String In _DigitSystems
+            sRet = sRet & digitSystem & ":" & vbTab & EncodeNumber(iNumber, digitSystem) & vbCrLf
+        Next
+
+        Return sRet
+
+    End Function
+
+    Private Function RetrieveDigitSystems() As List(Of String)
+        Dim aDigitSystems As New List(Of String)
+
+        For Each linia As String In maLines
+            If linia.Contains(" DIGIT ONE") Then
+                Dim numSystem As String = linia.TrimBefore(vbTab).Substring(1)
+                Dim iInd As Integer = numSystem.IndexOf(" DIGIT ONE")
+                aDigitSystems.Add(numSystem.Substring(0, iInd))
+            End If
+        Next
+
+        ' aDigitSystems.Add("KAYAH LI")
+
+        Return aDigitSystems
+
+    End Function
+
+    Private Function EncodeNumber(iNumber As Integer, digitSystem As String) As String
+
+        Dim ret As String = ""
+
+        Dim sNumber As String = iNumber.ToString
+        For Each digit As Char In sNumber
+
+            Dim sQuery As String = vbTab & digitSystem & " DIGIT "
+
+            Select Case digit
+                Case "0"
+                    sQuery &= "ZERO"
+                Case "1"
+                    sQuery &= "ONE"
+                Case "2"
+                    sQuery &= "TWO"
+                Case "3"
+                    sQuery &= "THREE"
+                Case "4"
+                    sQuery &= "FOUR"
+                Case "5"
+                    sQuery &= "FIVE"
+                Case "6"
+                    sQuery &= "SIX"
+                Case "7"
+                    sQuery &= "SEVEN"
+                Case "8"
+                    sQuery &= "EIGHT"
+                Case "9"
+                    sQuery &= "NINE"
+                Case Else
+                    ret &= "?"
+                    Continue For
+            End Select
+
+            For iLinia = 0 To maLines.GetUpperBound(0)
+                If maLines(iLinia).Contains(sQuery) Then
+                    ret &= GetUnicodeChar(maLines(iLinia))
+                End If
+            Next
+
+        Next
+
+        Return ret
+    End Function
+
+
+    Private Function RecognizeNumberSystem(sUni As String) As String
+        If sUni.Length < 1 Then Return ""
+
+        Dim iChar As Int32 = Convert.ToInt32(sUni.ElementAt(0))
+        Dim sChar As String = iChar.ToString("X4") & vbTab   ' tab wazny - bo nie poczatek, a calosc kodu!
+
+        For iLinia = 0 To maLines.GetUpperBound(0)
+            If maLines(iLinia).StartsWith(sChar) Then
+                Dim sCharName As String = maLines(iLinia)
+                Dim iInd As Integer = sCharName.IndexOf(vbTab)
+                If iInd < 2 Then Return ""
+                sCharName = sCharName.Substring(iInd + 1)
+                If sCharName.StartsWith("DIGIT") Then Return "WESTERN"
+                iInd = sCharName.IndexOf(" DIGIT ")
+                If iInd < 2 Then Return ""
+                Return sCharName.Substring(0, iInd)
+
+            End If
+        Next
+
+        Return ""
+
+    End Function
+
+    Private Function NumberFromText(sUni As String) As Integer
+
+        Dim decoded As String = DecodeUnicode(sUni, False, False)
+
+        Dim wartosc As Integer = 0
+        For Each oDigit As String In decoded.Split(vbCrLf)
+
+            If Not oDigit.Contains("DIGIT") Then Continue For
+
+            wartosc *= 10
+            If oDigit.Contains(" ONE") Then wartosc += 1
+            If oDigit.Contains(" TWO") Then wartosc += 2
+            If oDigit.Contains(" THREE") Then wartosc += 3
+            If oDigit.Contains(" FOUR") Then wartosc += 4
+            If oDigit.Contains(" FIVE") Then wartosc += 5
+            If oDigit.Contains(" SIX") Then wartosc += 6
+            If oDigit.Contains(" SEVEN") Then wartosc += 7
+            If oDigit.Contains(" EIGHT") Then wartosc += 8
+            If oDigit.Contains(" NINE") Then wartosc += 9
+        Next
+
+        Return wartosc
+
+    End Function
+
+#End Region
 
 #End Region
 
