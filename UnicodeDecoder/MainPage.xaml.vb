@@ -2,6 +2,8 @@
 
 
 
+Imports claslibtest14
+
 Public NotInheritable Class MainPage
     Inherits Page
 
@@ -25,6 +27,11 @@ Public NotInheritable Class MainPage
         ProgRingInit(True, False)
         Await NamesListInit()
         bInitDone = True
+
+        Class1.getenvvartest()
+        Module1.cosik1()
+        Dim sCOs = Environment.GetEnvironmentVariables '(EnvironmentVariableTarget.User)
+        'Dim scosss = Environment.GetCommandLineArgs
 
         ' 2022.03.29
         Await Task.Delay(1000)  ' bo AccessDenied gdy idzie bez zwłoki, na DataTransfer.Clipboard.GetContent
@@ -304,12 +311,12 @@ Public NotInheritable Class MainPage
                         End If
                     End If
 
-                        bFound = False
+                    bFound = False
                 End If
 
                 sCurrSection = sLinia
-                    If sLinia.ToLowerInvariant.Contains(sSearch) Then bFound = True
-                Else
+                If sLinia.ToLowerInvariant.Contains(sSearch) Then bFound = True
+            Else
 
                 ' zwykła linia
                 If bFullInfo Then sCurrSection = sCurrSection & vbCrLf & sLinia

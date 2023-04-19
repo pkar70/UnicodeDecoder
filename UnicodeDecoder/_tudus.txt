@@ -1,4 +1,8 @@
 
+unicode - mozna zrobic "szyfrator liczbowy", tzn. zamieniac cyfry na rozne, albo i pelniej, nie tylko dziesietnymi jechac.
+
+
+
 * może być oddzielna strona do kodera, takiego pełnego
 - wybór znaku
 - wybór modyfikatorów (np. płeć, odcień skóry, itp.)
@@ -28,6 +32,18 @@ https://unicode.org/Public/emoji/1.0/emoji-data.txt
 1F469 200D 2764 200D 1F48B 200D 1F469       # (👩‍❤‍💋‍👩) woman, zwj, heavy black heart, zwj, kiss mark, zwj, woman
 
 1F3FB..1F3FF  ; Emoji_Modifier       # 8.0  [5] (🏻..🏿)    light skin tone..dark skin tone
+
+
+podstawowy
+płeć		f U+2640 m U+2642
+skin tone	U+1F3FF..U+1F3FB
+z https://unicode.org/emoji/charts/emoji-zwj-sequences.html
+beard		U+FE0F
+red hair	U+1F9B0
+curly hair	U+1F9B1
+white hair	U+1F9B3
+bald (no hair)	U+1F9B2
+
 
 
 0023          ; Emoji_Component      #  1.1  [1] (#️)       number sign
