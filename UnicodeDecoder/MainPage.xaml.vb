@@ -63,6 +63,19 @@ Public NotInheritable Class MainPage
 
 #End Region
 
+#Region "letters"
+
+    ' bez sensu, bo np. litera A jest tylko LATIN i NKO, ale NKO ma raczej głoski niż litery
+    Private Sub uiUnicodeLetters_TextChanged(sender As Object, e As TextChangedEventArgs)
+        If Not bInitDone Then Return
+        Dim sUni As String = uiUnicodeLetters.Text
+        uiUnicodeLettersResult.Text = EncodeLetters(sUni)
+
+    End Sub
+
+#End Region
+
+
     Private Sub uiGetList_Click(sender As Object, e As RoutedEventArgs)
 #Disable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
         NamesListDownload()
@@ -254,6 +267,8 @@ Public NotInheritable Class MainPage
 
         sSearch = sSearch.ToLowerInvariant
 
+        Dim guard As Integer = 100
+
         For iLinia = 0 To maLines.GetUpperBound(0)
 
             Dim sLinia As String = maLines(iLinia)
@@ -269,6 +284,8 @@ Public NotInheritable Class MainPage
                     sRetVal = sRetVal & vbCrLf & sCurrSection
 
                     sUnicodes &= GetUnicodeChar(sCurrSection)
+                    guard -= 1
+                    If guard < 0 Then Exit For
 
                     bFound = False
                 End If
@@ -417,6 +434,7 @@ Public NotInheritable Class MainPage
             For iLinia = 0 To maLines.GetUpperBound(0)
                 If maLines(iLinia).Contains(sQuery) Then
                     ret &= GetUnicodeChar(maLines(iLinia))
+                    Exit For
                 End If
             Next
 
@@ -476,6 +494,74 @@ Public NotInheritable Class MainPage
     End Function
 
 #End Region
+
+#Region "letters coding"
+
+    Dim _LettersSystems As List(Of String)
+
+    Private Function EncodeLetters(sUni As String) As String
+
+        Dim lLetters As New List(Of String)
+
+        ' U+0061	LATIN SMALL LETTER A
+        ' U+004B	LATIN CAPITAL LETTER K
+        For Each oChar As String In DecodeUnicode(sUni, False, False).Split(vbCrLf)
+            If Not oChar.Contains(" LETTER ") Then Continue For
+            Dim iInd As Integer = oChar.IndexOf(" SMALL LETTER")
+            If iInd < 0 Then iInd = oChar.IndexOf(" CAPITAL LETTER")
+            If iInd < 0 Then iInd = oChar.IndexOf(" LETTER")
+            lLetters.Add(oChar.Substring(iInd + 1))
+        Next
+
+        ' może być różne dla różnych, bo różny zakres
+        Dim lSystems As List(Of String) = RetrieveLettersSystems(lLetters)
+
+        Dim sRet As String = ""
+
+        For Each letterSystem As String In lSystems
+            sRet = sRet & letterSystem & ":" & vbTab & EncodeLetters(lLetters, letterSystem) & vbCrLf
+        Next
+
+        Return sRet
+
+    End Function
+
+    Private Function EncodeLetters(letters As List(Of String), letterSystem As String) As String
+
+        Dim ret As String = ""
+
+        For Each letter As String In letters
+            Dim query As String = vbTab & letterSystem & " " & letter
+            For iLinia = 0 To maLines.GetUpperBound(0)
+                If maLines(iLinia).EndsWith(query) Then
+                    ret &= GetUnicodeChar(maLines(iLinia))
+                    Exit For
+                End If
+            Next
+        Next
+
+        Return ret
+    End Function
+
+    Private Function RetrieveLettersSystems(letters As List(Of String)) As List(Of String)
+        Dim aDigitSystems As New List(Of String)
+
+        'For Each linia As String In maLines
+        '    If linia.Contains(" DIGIT ONE") Then
+        '        Dim numSystem As String = linia.TrimBefore(vbTab).Substring(1)
+        '        Dim iInd As Integer = numSystem.IndexOf(" DIGIT ONE")
+        '        aDigitSystems.Add(numSystem.Substring(0, iInd))
+        '    End If
+        'Next
+
+        ' aDigitSystems.Add("KAYAH LI")
+
+        Return aDigitSystems
+
+    End Function
+
+#End Region
+
 
 #End Region
 

@@ -1,4 +1,14 @@
 
+
+2023.04.19
+* cofniêcie do min 15063
+* zamiast guzików prze³¹czaj¹cych - TabView
+* transkodowanie liczb na wiele alfabetów
+* limit encoding do 100 wpisów
+* próba transkodowania tekstów, ale... nie ma alfabetów, LETTER A to tylko LATIN i NKO (sylabiczny)
+
+STORE 2204
+
 2022.04.27
  * WinUI 2.7 - bo testowa³em Expander, ale za du¿o miejsca siê traci na to
  * wyszukiwanie symboli
