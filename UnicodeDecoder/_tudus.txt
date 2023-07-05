@@ -28,6 +28,10 @@ Componments:
 szuakć: modifier
 https://unicode.org/Public/emoji/1.0/emoji-data.txt
 
+https://en.wikipedia.org/wiki/Variation_Selectors_%28Unicode_block%29
+że variant selector 16 color, a 15: monochrome
+
+
 1F468 200D 1F469 200D 1F467 200D 1F467      # (👨‍👩‍👧‍👧) man, zwj, woman, zwj, girl, zwj, girl
 1F469 200D 2764 200D 1F48B 200D 1F469       # (👩‍❤‍💋‍👩) woman, zwj, heavy black heart, zwj, kiss mark, zwj, woman
 
