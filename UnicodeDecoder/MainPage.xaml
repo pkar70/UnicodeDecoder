@@ -40,13 +40,35 @@
                     <Grid.RowDefinitions>
                         <RowDefinition  Height="Auto" />
                         <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
                         <RowDefinition  />
                     </Grid.RowDefinitions>
 
                     <TextBox Grid.Row="0" Header="Search Unicode for:" Name="uiUnicodeFind" PlaceholderText="(enter what I should search for (min. 4 letters)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiUnicodeFind_TextChanged" AcceptsReturn="True" />
                     <CheckBox Grid.Row="1" HorizontalAlignment="Right" Name="uiFullInfoFind" Content="Full info" IsChecked="False" Checked="uiReDecode_Checked" Unchecked="uiReDecode_Checked" />
 
-                    <TextBox Grid.Row="2" Name="uiUnicodeFindResult" Header="Found:" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+                    <TextBlock Grid.Row="2" Text="Found:" />
+                    <TextBox Grid.Row="3" Name="uiUnicodeFindResultIcons" HorizontalAlignment="Stretch" IsReadOnly="True" FontSize="24" />
+                    <TextBox Grid.Row="4" Name="uiUnicodeFindResult" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
+
+                </Grid>
+            </muxc:TabViewItem>
+
+            <muxc:TabViewItem Header="Hieroglyphs" IsClosable="False" >
+                <Grid Margin="5,5,5,5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  Height="Auto" />
+                        <RowDefinition  />
+                    </Grid.RowDefinitions>
+
+                    <TextBox Grid.Row="0" Header="Search in description for these words:" Name="uiHieroFind" PlaceholderText="(enter what I should search for (min. 4 letters)" HorizontalAlignment="Stretch" Margin="0,10,0,10" TextChanged="uiHieroFind_TextChanged" AcceptsReturn="True" />
+                    <TextBlock Grid.Row="2" Text="Found:" />
+                    <TextBox Grid.Row="3" Name="uiHieroFindResultIcons" HorizontalAlignment="Stretch" IsReadOnly="True" FontSize="30" />
+                    <TextBox Grid.Row="4" Name="uiHieroFindResult" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AcceptsReturn="True" IsReadOnly="True" />
 
                 </Grid>
             </muxc:TabViewItem>

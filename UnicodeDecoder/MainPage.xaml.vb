@@ -1,4 +1,6 @@
 ﻿
+Imports Windows.Storage
+
 Public NotInheritable Class MainPage
     Inherits Page
 
@@ -8,7 +10,7 @@ Public NotInheritable Class MainPage
 
     Private Async Sub Page_Loaded(sender As Object, e As RoutedEventArgs)
         ProgRingInit(True, False)
-        Await NamesListInit()
+        Await DataListsInit()
         bInitDone = True
 
         ' 2022.03.29
@@ -29,8 +31,6 @@ Public NotInheritable Class MainPage
 
     End Sub
 
-
-
 #Region "decode tab"
     Private Sub uiUnicode_TextChanged(sender As Object, e As TextChangedEventArgs)
         If Not bInitDone Then Return
@@ -48,10 +48,22 @@ Public NotInheritable Class MainPage
 
         Dim sUni As String = uiUnicodeFind.Text
 
-        If sUni.Length > 3 Then uiUnicodeFindResult.Text = EncodeUnicode(sUni, uiFullInfoFind.IsChecked)
+        If sUni.Length > 3 Then EncodeUnicode(sUni, uiFullInfoFind.IsChecked, uiUnicodeFindResultIcons, uiUnicodeFindResult)
     End Sub
 
 #End Region
+
+#Region "hieroglify"
+    Private Sub uiHieroFind_TextChanged(sender As Object, e As TextChangedEventArgs)
+        If Not bInitDone Then Return
+
+        Dim sUni As String = uiHieroFind.Text
+
+        If sUni.Replace(" ", "").Length > 3 Then SearchHiero(sUni, uiHieroFindResultIcons, uiHieroFindResult)
+    End Sub
+
+#End Region
+
 
 #Region "numbers"
     Private Sub uiUnicodeNumber_TextChanged(sender As Object, e As TextChangedEventArgs)
@@ -76,10 +88,11 @@ Public NotInheritable Class MainPage
 #End Region
 
 
-    Private Sub uiGetList_Click(sender As Object, e As RoutedEventArgs)
-#Disable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
-        NamesListDownload()
-#Enable Warning BC42358 ' Because this call is not awaited, execution of the current method continues before the call is completed
+    Private Async Sub uiGetList_Click(sender As Object, e As RoutedEventArgs)
+        Await NamesListDownload()
+        Await HieroListDownload()
+        maNamesLines = File.ReadAllLines(NamesListGetPathname)
+        maHieroLines = File.ReadAllLines(HieroListGetPathname)
     End Sub
 
     Private Sub uiReDecode_Checked(sender As Object, e As RoutedEventArgs)
@@ -89,40 +102,73 @@ Public NotInheritable Class MainPage
 
 #End Region
 
-#Region "plik z nazwami"
+#Region "pliki danych"
 
-    Dim maLines As String() = {""}
+    Dim maNamesLines As String() = {""}
+    Dim maHieroLines As String() = {""}
 
+    Private Const NAMES_FILE As String = "NamesList.txt"
+    Private Const HIERO_FILE As String = "HieroglyphSources.txt"
+
+
+    ''' <summary>
+    ''' ścieżka do pliku z nazwami
+    ''' </summary>
+    ''' <returns></returns>
     Private Function NamesListGetPathname() As String
-        Dim oFold As Windows.Storage.StorageFolder = Windows.Storage.ApplicationData.Current.TemporaryFolder
-        Return Path.Combine(oFold.Path, "NamesList.txt")
+        Return DataFileGetPathname(NAMES_FILE)
+    End Function
+    Private Function HieroListGetPathname() As String
+        Return DataFileGetPathname(HIERO_FILE)
     End Function
 
-    Private Async Function NamesListInit() As Task
+    Private Function DataFileGetPathname(filename As String) As String
+        Dim oFold As Windows.Storage.StorageFolder = Windows.Storage.ApplicationData.Current.LocalCacheFolder
+        Return Path.Combine(oFold.Path, filename)
+    End Function
+
+    Private Async Function DataListsInit() As Task
+
+        Dim doSciagniecia As Boolean = False
+
         If Not File.Exists(NamesListGetPathname) Then
-            File.Copy("Assets\NamesList.txt", NamesListGetPathname)
-            Await NamesListDownload()
+            File.Copy("Assets\" & NAMES_FILE, NamesListGetPathname)
+            doSciagniecia = True
         End If
 
-        maLines = File.ReadAllLines(NamesListGetPathname)
+        If Not File.Exists(HieroListGetPathname) Then
+            File.Copy("Assets\" & HIERO_FILE, HieroListGetPathname)
+            doSciagniecia = True
+        End If
+
+        If doSciagniecia Then
+            If Await DialogBoxYNAsync("Do you want to check if new standard exist?") Then
+                Await NamesListDownload()
+                Await HieroListDownload()
+            End If
+        End If
+
+        maNamesLines = File.ReadAllLines(NamesListGetPathname)
+        maHieroLines = File.ReadAllLines(HieroListGetPathname)
     End Function
 
     Private Async Function NamesListDownload() As Task
-        If Not Await DialogBoxYNAsync("Do you want to check if new standard exist on The Unicode Consortium site?") Then Return
+
+        Dim servName As String = "The Unicode Consortium site"
 
         ProgRingShow(True)
-        Dim sPage As String = Await GetHtmlPage("https://unicode.org/Public/UNIDATA/NamesList.txt")
+        Dim sPage As String = Await GetHtmlPage("https://unicode.org/Public/UNIDATA/" & NAMES_FILE)
         ProgRingShow(False)
         If sPage = "" Then
-            Await DialogBoxAsync("ERROR: cannot download file")
+            Await DialogBoxAsync($"ERROR: cannot download {NAMES_FILE} file from {servName}")
             Return
         End If
         If sPage.Length < 1000 * 1024 Then
-            Await DialogBoxAsync("ERROR: file seems too short (" & sPage.Length & " bytes only, expected > 1 MB)")
+            Await DialogBoxAsync($"ERROR: {NAMES_FILE} seems too short ({sPage.Length} bytes only, expected > 1 MB)")
             Return
         End If
 
-        If maLines.Length > 5 Then
+        If maNamesLines.Length > 5 Then
             ' jest poprzednia wersja, możemy sprawdzić
 
             '; charset=UTF-8
@@ -131,7 +177,7 @@ Public NotInheritable Class MainPage
 
             Dim sOldVers As String = ""
             For iLoop As Integer = 0 To 10
-                Dim sLine As String = maLines(iLoop)
+                Dim sLine As String = maNamesLines(iLoop)
                 If sLine.Contains("The Unicode Standard") Then
                     Dim iInd As Integer = sLine.IndexOf("The Unicode Standard")
                     sOldVers = sLine.Substring(iInd + "The Unicode Standard".Length).Trim
@@ -152,20 +198,87 @@ Public NotInheritable Class MainPage
             Next
 
             If sOldVers = sNewVers Then
-                Await DialogBoxAsync("There is no newer version (current: " & sOldVers & ")")
+                Await DialogBoxAsync($"There is no newer version (current: {sOldVers}) on {servName}")
                 Return
             End If
 
-            Await DialogBoxAsync("Got newer version " & sNewVers & " (previous: " & sOldVers & ")")
+            Await DialogBoxAsync($"Got newer version {sNewVers} (previous: {sOldVers}) from {servName}")
 
-            maLines = aPage
-
+            maNamesLines = sPage.Split(vbLf)
         End If
 
         ' gdy wiemy że nowsza wersja, albo gdy nie było poprzedniej wersji
         File.WriteAllText(NamesListGetPathname, sPage)
 
     End Function
+
+    Private Async Function HieroListDownload() As Task
+
+        Dim servName As String = "ISO site"
+
+        ProgRingShow(True)
+        Dim sPage As String = Await GetHtmlPage("https://standards.iso.org/iso-iec/10646/ed-6/en/" & HIERO_FILE)
+        ProgRingShow(False)
+
+        If sPage = "" Then
+            Await DialogBoxAsync($"ERROR: cannot download {HIERO_FILE} file from {servName}")
+            Return
+        End If
+        If sPage.Length < 1000 * 1024 Then
+            Await DialogBoxAsync($"ERROR: {HIERO_FILE} seems too short ({sPage.Length} bytes only, expected > 1 MB)")
+            Return
+        End If
+
+        If maHieroLines.Length > 5 Then
+            ' jest poprzednia wersja, możemy sprawdzić
+
+            ' #	Date: 2023-8-4
+            Dim sOldVers As String = ""
+            For iLoop As Integer = 0 To 10
+                Dim sLine As String = maHieroLines(iLoop)
+                If sLine.Contains("Date: 20") Then
+                    Dim iInd As Integer = sLine.IndexOf(":")
+                    sOldVers = sLine.Substring(iInd + 1).Trim
+                    Exit For
+                End If
+            Next
+
+            Dim sNewVers As String = ""
+            ' szkoda robić większą aPage, wystarczy parę linijek
+            Dim aPage As String() = sPage.Substring(0, 3000).Split(vbLf)
+            For iLoop As Integer = 0 To 10
+                Dim sLine As String = aPage(iLoop)
+                If sLine.Contains("Date: 20") Then
+                    Dim iInd As Integer = sLine.IndexOf(":")
+                    sNewVers = sLine.Substring(iInd + 1).Trim
+                    Exit For
+                End If
+            Next
+
+            If sOldVers = sNewVers Then
+                Await DialogBoxAsync($"There is no newer version (current: {sOldVers}) on {servName}")
+                Return
+            End If
+
+            Await DialogBoxAsync($"Got newer version {sNewVers} (previous: {sOldVers}) from {servName}")
+
+        End If
+
+        ' zapisanie pliku - ale tylko linie które nas interesują
+        File.Delete(HieroListGetPathname)   ' bo overwrite czasem zostawia śmieci
+        For Each sLinia As String In sPage.Split(vbLf)
+            Dim linia As String = sLinia.Trim
+            If linia.StartsWith("#") OrElse linia.Contains("kEH_Desc") Then
+                File.WriteAllText(HieroListGetPathname, linia & vbCrLf)
+            End If
+        Next
+
+        ' gdy wiemy że nowsza wersja, albo gdy nie było poprzedniej wersji
+        File.WriteAllText(HieroListGetPathname, sPage)
+        maHieroLines = File.ReadAllLines(HieroListGetPathname)
+
+    End Function
+
 
     Private Async Function GetHtmlPage(ByVal sUrl As String) As Task(Of String)
         DumpCurrMethod(sUrl)
@@ -234,14 +347,14 @@ Public NotInheritable Class MainPage
 
             sDecod &= "U+"
 
-            For iLinia = 0 To maLines.GetUpperBound(0)
-                If maLines(iLinia).StartsWith(sChar) Then
-                    sDecod = sDecod & maLines(iLinia) & vbCrLf
+            For iLinia = 0 To maNamesLines.GetUpperBound(0)
+                If maNamesLines(iLinia).StartsWith(sChar) Then
+                    sDecod = sDecod & maNamesLines(iLinia) & vbCrLf
                     If bFullInfo Then
                         Do
                             iLinia += 1
-                            If Not maLines(iLinia).StartsWith(vbTab) Then Exit Do
-                            sDecod = sDecod & maLines(iLinia) & vbCrLf
+                            If Not maNamesLines(iLinia).StartsWith(vbTab) Then Exit Do
+                            sDecod = sDecod & maNamesLines(iLinia) & vbCrLf
                         Loop
                     End If
                     Exit For
@@ -258,7 +371,7 @@ Public NotInheritable Class MainPage
 
     End Function
 
-    Private Function EncodeUnicode(sSearch As String, bFullInfo As Boolean) As String
+    Private Sub EncodeUnicode(sSearch As String, bFullInfo As Boolean, forIcon As TextBox, forDescr As TextBox)
 
         Dim sRetVal As String = ""
         Dim sCurrSection As String = ""
@@ -269,9 +382,9 @@ Public NotInheritable Class MainPage
 
         Dim guard As Integer = 100
 
-        For iLinia = 0 To maLines.GetUpperBound(0)
+        For iLinia = 0 To maNamesLines.GetUpperBound(0)
 
-            Dim sLinia As String = maLines(iLinia)
+            Dim sLinia As String = maNamesLines(iLinia)
 
             If sLinia.StartsWith("@") Then Continue For
             If sLinia.StartsWith(";") Then Continue For
@@ -309,8 +422,50 @@ Public NotInheritable Class MainPage
             End If
         Next
 
-        Return sUnicodes & vbCrLf & sRetVal
-    End Function
+        forIcon.Text = sUnicodes
+        forDescr.Text = sRetVal
+
+    End Sub
+
+    Private Sub SearchHiero(sSearch As String, forIcon As TextBox, forDescr As TextBox)
+
+        Dim sRetVal As String = ""
+        Dim sCurrSection As String = ""
+        Dim bFound As Boolean = False
+        Dim sUnicodes As String = ""
+        Dim aSearch As String() = sSearch.ToLowerInvariant.Split(" ")
+
+        Dim guard As Integer = 100
+
+        For Each sLinia As String In maHieroLines
+
+            If sLinia.StartsWith("#") Then Continue For
+            If sLinia.StartsWith(";") Then Continue For
+
+            Dim aTabs As String() = sLinia.Split(vbTab)
+            If aTabs.Length <> 3 Then Continue For
+            If Not aTabs(0).StartsWith("U+") Then Continue For
+
+            Dim bMatch As Boolean = True
+            For Each word As String In aSearch
+                If Not aTabs(2).ToLowerInvariant.Contains(word) Then
+                    bMatch = False
+                    Exit For
+                End If
+            Next
+
+            If bMatch Then
+                sUnicodes &= GetUnicodeChar(aTabs(0).Substring(2) & vbTab)  ' ścinamy U+
+                sRetVal &= aTabs(0) & vbTab & aTabs(2) & vbCrLf
+            End If
+
+        Next
+
+        forIcon.Text = sUnicodes
+        forDescr.Text = sRetVal
+
+    End Sub
+
 
     Private Shared _Encoder = (New System.Text.UTF32Encoding(Not BitConverter.IsLittleEndian, False, False)).GetDecoder
 
@@ -382,7 +537,7 @@ Public NotInheritable Class MainPage
     Private Function RetrieveDigitSystems() As List(Of String)
         Dim aDigitSystems As New List(Of String)
 
-        For Each linia As String In maLines
+        For Each linia As String In maNamesLines
             If linia.Contains(" DIGIT ONE") Then
                 Dim numSystem As String = linia.TrimBefore(vbTab).Substring(1)
                 Dim iInd As Integer = numSystem.IndexOf(" DIGIT ONE")
@@ -431,9 +586,9 @@ Public NotInheritable Class MainPage
                     Continue For
             End Select
 
-            For iLinia = 0 To maLines.GetUpperBound(0)
-                If maLines(iLinia).Contains(sQuery) Then
-                    ret &= GetUnicodeChar(maLines(iLinia))
+            For iLinia = 0 To maNamesLines.GetUpperBound(0)
+                If maNamesLines(iLinia).Contains(sQuery) Then
+                    ret &= GetUnicodeChar(maNamesLines(iLinia))
                     Exit For
                 End If
             Next
@@ -450,9 +605,9 @@ Public NotInheritable Class MainPage
         Dim iChar As Int32 = Convert.ToInt32(sUni.ElementAt(0))
         Dim sChar As String = iChar.ToString("X4") & vbTab   ' tab wazny - bo nie poczatek, a calosc kodu!
 
-        For iLinia = 0 To maLines.GetUpperBound(0)
-            If maLines(iLinia).StartsWith(sChar) Then
-                Dim sCharName As String = maLines(iLinia)
+        For iLinia = 0 To maNamesLines.GetUpperBound(0)
+            If maNamesLines(iLinia).StartsWith(sChar) Then
+                Dim sCharName As String = maNamesLines(iLinia)
                 Dim iInd As Integer = sCharName.IndexOf(vbTab)
                 If iInd < 2 Then Return ""
                 sCharName = sCharName.Substring(iInd + 1)
@@ -532,9 +687,9 @@ Public NotInheritable Class MainPage
 
         For Each letter As String In letters
             Dim query As String = vbTab & letterSystem & " " & letter
-            For iLinia = 0 To maLines.GetUpperBound(0)
-                If maLines(iLinia).EndsWith(query) Then
-                    ret &= GetUnicodeChar(maLines(iLinia))
+            For iLinia = 0 To maNamesLines.GetUpperBound(0)
+                If maNamesLines(iLinia).EndsWith(query) Then
+                    ret &= GetUnicodeChar(maNamesLines(iLinia))
                     Exit For
                 End If
             Next
@@ -546,7 +701,7 @@ Public NotInheritable Class MainPage
     Private Function RetrieveLettersSystems(letters As List(Of String)) As List(Of String)
         Dim aDigitSystems As New List(Of String)
 
-        'For Each linia As String In maLines
+        'For Each linia As String In maNamesLines
         '    If linia.Contains(" DIGIT ONE") Then
         '        Dim numSystem As String = linia.TrimBefore(vbTab).Substring(1)
         '        Dim iInd As Integer = numSystem.IndexOf(" DIGIT ONE")

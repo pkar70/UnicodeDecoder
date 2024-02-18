@@ -1,4 +1,5 @@
-﻿Imports System.Net.Http
+﻿Imports System.Configuration
+Imports System.Net.Http
 Imports HtmlAgilityPack
 
 Module Module1
@@ -7,7 +8,7 @@ Module Module1
 
         Console.WriteLine("GetEmojis")
 
-        Dim targetDir As String = IO.Path.Combine(Environment.CurrentDirectory, "unicode")
+        Dim targetDir As String = IO.Path.Combine(Environment.CurrentDirectory, "unicode." & Date.Now.ToString("yyyy.MM.dd"))
         Dim themeFile As String = IO.Path.Combine(targetDir, "theme")
 
         'If IO.Directory.Exists(targetDir) Then
@@ -52,7 +53,22 @@ Author=pkar
     Private Sub GetProposedEmojis(targetDir As String, themeFile As String)
         ' propozycje, ale na liście są też oficjalne (niektóre?), więc je pomijamy... a może w ogóle wszystkie tu są?
 
-        Dim sPage As String = _http.GetStringAsync("http://www.unicode.org/emoji/charts/emoji-proposals.html").Result
+        Dim sPage As String = ""
+        Dim localFile As String = IO.Path.Combine(targetDir, "emoji-proposals.html")
+        If IO.File.Exists(localFile) Then
+            If IO.File.GetLastWriteTime(localFile).AddDays(15) > Date.Now Then
+                Console.WriteLine("Uzywam lokalnego pliku")
+                sPage = IO.File.ReadAllText(localFile)
+            Else
+                Console.WriteLine("Lokalny plik jest zbyt stary")
+            End If
+        End If
+
+        If sPage = "" Then
+            Console.WriteLine("reading file from Internet")
+            _http.Timeout = TimeSpan.FromMinutes(5)
+            sPage = _http.GetStringAsync("http://www.unicode.org/emoji/charts/emoji-proposals.html").Result
+        End If
 
         If String.IsNullOrWhiteSpace(sPage) Then Return
 
